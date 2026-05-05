@@ -24,7 +24,6 @@
     ],
     "require": {
         "php": ">=7.4",
-        "wp-cli/wp-cli": "^2.7",
         "symfony/process": "^5.4 || ^6.0 || ^7.0",
         "symfony/yaml": "^5.4 || ^6.0 || ^7.0"
     },
@@ -61,6 +60,12 @@
         "lint:fix": "phpcbf"
     },
     "config": {
-        "sort-packages": true
+        "sort-packages": true,
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "composer/installers": true,
+            "cweagans/composer-patches": true,
+            "johnpbloch/wordpress-core-installer": true
+        }
     }
 }
