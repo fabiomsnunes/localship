@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace LocalShip\Command;
 
 use LocalShip\Flow\InitFlow;
+use LocalShip\Flow\StatusFlow;
 use LocalShip\Util\Prompt;
 use WP_CLI;
 
@@ -98,7 +99,14 @@ final class LocalShipCommand
      */
     public function status(array $args, array $assoc_args): void
     {
-        WP_CLI::error('Not implemented yet. Coming in step 6 of the build.');
+        $context = Context::bootstrap($assoc_args);
+        $flow    = new StatusFlow($context->runner(), static function (string $line): void {
+            WP_CLI::log($line);
+        });
+
+        if (! $flow->run($context->config())) {
+            WP_CLI::halt(1);
+        }
     }
 
     /**
