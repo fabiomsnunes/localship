@@ -10,8 +10,13 @@ declare(strict_types=1);
 
 namespace LocalShip\Command;
 
+use LocalShip\Exception\ConfigException;
+use LocalShip\Exception\ProcessException;
 use LocalShip\Flow\InitFlow;
+use LocalShip\Flow\PullFlow;
+use LocalShip\Flow\Scope;
 use LocalShip\Flow\StatusFlow;
+use LocalShip\Safety\Excludes;
 use LocalShip\Util\Prompt;
 use WP_CLI;
 
@@ -230,6 +235,43 @@ final class LocalShipCommand
      */
     public function pull(array $args, array $assoc_args): void
     {
-        WP_CLI::error('Not implemented yet. Coming in step 7 of the build.');
+        if ([] === $args) {
+            WP_CLI::error('Missing required <env> argument.');
+        }
+        $envName = $args[0];
+
+        $context = Context::bootstrap($assoc_args);
+        if (! $context->config()->hasEnv($envName)) {
+            WP_CLI::error(sprintf('Unknown env "%s".', $envName));
+        }
+        if ('local' === $envName) {
+            WP_CLI::error('Cannot pull from local.');
+        }
+
+        try {
+            $scope = Scope::fromAssocArgs(
+                [Scope::TOKEN_DB, Scope::TOKEN_UPLOADS],
+                $assoc_args
+            );
+        } catch (ConfigException $e) {
+            WP_CLI::error($e->getMessage());
+        }
+
+        $logger = static function (string $line): void {
+            WP_CLI::log($line);
+        };
+        $flow   = new PullFlow(
+            $context->runner(),
+            new Excludes(Excludes::bundledDefault()),
+            $logger
+        );
+
+        try {
+            $flow->run($context->config(), $envName, $scope);
+        } catch (ProcessException $e) {
+            WP_CLI::error($e->getMessage());
+        }
+
+        WP_CLI::success('Pull finished.');
     }
 }
