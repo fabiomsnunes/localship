@@ -1,4 +1,5 @@
 <?php
+
 /**
  * LocalShip — WP-CLI package bootstrap.
  *
@@ -10,15 +11,15 @@
  * @link      https://github.com/fabiomsnunes/localship
  */
 
-declare( strict_types = 1 );
+declare(strict_types=1);
 
-if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
-	return;
+if (! defined('WP_CLI') || ! WP_CLI) {
+    return;
 }
 
 $autoload = __DIR__ . '/vendor/autoload.php';
-if ( file_exists( $autoload ) ) {
-	require_once $autoload;
+if (file_exists($autoload)) {
+    require_once $autoload;
 }
 
-WP_CLI::add_command( 'localship', \LocalShip\Command\LocalShipCommand::class );
+WP_CLI::add_command('localship', \LocalShip\Command\LocalShipCommand::class);
