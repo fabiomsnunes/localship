@@ -14,9 +14,11 @@ use LocalShip\Exception\ConfigException;
 use LocalShip\Exception\ProcessException;
 use LocalShip\Flow\InitFlow;
 use LocalShip\Flow\PullFlow;
+use LocalShip\Flow\PushFlow;
 use LocalShip\Flow\Scope;
 use LocalShip\Flow\StatusFlow;
 use LocalShip\Safety\Excludes;
+use LocalShip\Safety\HostnameConfirm;
 use LocalShip\Util\Prompt;
 use WP_CLI;
 
@@ -36,6 +38,20 @@ use WP_CLI;
  */
 final class LocalShipCommand
 {
+    /**
+     * Whether STDIN is attached to a terminal.
+     *
+     * Used to refuse protected-env operations from cron/CI contexts unless the operator
+     * has explicitly waived the safety with --yes-i-know.
+     */
+    private static function isInteractive(): bool
+    {
+        if (defined('STDIN') && function_exists('stream_isatty')) {
+            return stream_isatty(STDIN);
+        }
+        return false;
+    }
+
     /**
      * Interactively scaffold a `wp-cli.yml` (aliases + `localship:` block) for the current site.
      *
@@ -194,7 +210,65 @@ final class LocalShipCommand
      */
     public function push(array $args, array $assoc_args): void
     {
-        WP_CLI::error('Not implemented yet. Coming in step 8 of the build.');
+        if ([] === $args) {
+            WP_CLI::error('Missing required <env> argument.');
+        }
+        $envName = $args[0];
+
+        $context = Context::bootstrap($assoc_args);
+        if (! $context->config()->hasEnv($envName)) {
+            WP_CLI::error(sprintf('Unknown env "%s".', $envName));
+        }
+        if ('local' === $envName) {
+            WP_CLI::error('Cannot push to local.');
+        }
+
+        try {
+            $scope = Scope::fromAssocArgs(Scope::ALL_TOKENS, $assoc_args);
+        } catch (ConfigException $e) {
+            WP_CLI::error($e->getMessage());
+        }
+
+        $env       = $context->config()->env($envName);
+        $skipBackup = array_key_exists('no-backup', $assoc_args);
+        $yesIKnow  = array_key_exists('yes-i-know', $assoc_args);
+
+        if ($env->isProtected()) {
+            if (! self::isInteractive() && ! $yesIKnow) {
+                WP_CLI::error(sprintf(
+                    'Refusing to push to protected env "%s" without a TTY. Pass --yes-i-know to override.',
+                    $envName
+                ));
+            }
+            $confirm  = new HostnameConfirm(
+                HostnameConfirm::stdinReader(),
+                static function (string $line): void {
+                    WP_CLI::log($line);
+                }
+            );
+            if (! PushFlow::confirmIfProtected($context->config(), $envName, $confirm)) {
+                WP_CLI::error('Aborted.');
+            }
+        }
+
+        $logger = static function (string $line): void {
+            WP_CLI::log($line);
+        };
+        $flow   = new PushFlow(
+            $context->runner(),
+            new Excludes(Excludes::bundledDefault()),
+            $logger
+        );
+
+        try {
+            $flow->run($context->config(), $envName, $scope, $skipBackup);
+        } catch (ProcessException $e) {
+            WP_CLI::error($e->getMessage());
+        } catch (\InvalidArgumentException $e) {
+            WP_CLI::error($e->getMessage());
+        }
+
+        WP_CLI::success('Push finished.');
     }
 
     /**
