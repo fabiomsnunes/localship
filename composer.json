@@ -1,0 +1,66 @@
+{
+    "name": "fabiomsnunes/localship",
+    "description": "A WP-CLI package that automates push/pull/clone of WordPress sites between Local by Flywheel and SSH-accessible VPS.",
+    "type": "wp-cli-package",
+    "license": "GPL-2.0-or-later",
+    "keywords": [
+        "wp-cli",
+        "wordpress",
+        "deploy",
+        "rsync",
+        "local-by-flywheel",
+        "migration"
+    ],
+    "homepage": "https://github.com/fabiomsnunes/localship",
+    "support": {
+        "issues": "https://github.com/fabiomsnunes/localship/issues",
+        "source": "https://github.com/fabiomsnunes/localship"
+    },
+    "authors": [
+        {
+            "name": "Fábio Nunes",
+            "homepage": "https://github.com/fabiomsnunes"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "wp-cli/wp-cli": "^2.7",
+        "symfony/process": "^5.4 || ^6.0 || ^7.0",
+        "symfony/yaml": "^5.4 || ^6.0 || ^7.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.6 || ^10.5",
+        "wp-cli/wp-cli-tests": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "LocalShip\\": "src/"
+        },
+        "files": [
+            "localship.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "LocalShip\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "commands": [
+            "localship",
+            "localship init",
+            "localship status",
+            "localship clone",
+            "localship push",
+            "localship pull"
+        ]
+    },
+    "scripts": {
+        "test": "phpunit",
+        "lint": "phpcs",
+        "lint:fix": "phpcbf"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
