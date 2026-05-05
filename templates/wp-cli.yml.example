@@ -1,0 +1,45 @@
+# LocalShip per-site config example.
+# Copy to your site root as `wp-cli.yml` and fill in the values, or run
+# `wp localship init` to scaffold this interactively.
+
+# Path to the WordPress install relative to this file.
+# In a Local by Flywheel site this is typically `app/public`.
+path: app/public
+
+# Standard WP-CLI alias section. LocalShip reuses these for SSH access —
+# no separate SSH config is needed.
+@staging:
+  ssh: user@host:/home/user/webapps/client-x-staging
+
+@production:
+  ssh: user@host:/home/user/webapps/client-x
+
+# LocalShip-specific section. WP-CLI passes unknown top-level keys through
+# to packages via `extra_config`, so this whole block is read by LocalShip.
+localship:
+  # The local environment never has SSH details — it's the machine running wp-cli.
+  local:
+    url: http://client-x.local
+    path: /Users/you/Local Sites/client-x/app/public
+
+  # One block per remote env. Names must match the `@<name>` aliases above.
+  staging:
+    url: https://staging.client-x.com
+    path: /home/user/webapps/client-x-staging
+
+  production:
+    url: https://client-x.com
+    path: /home/user/webapps/client-x
+
+  # The slug of the theme you're actively developing on this site. Used by
+  # `push-theme` / `pull-theme` (Phase 2) and to scope rsync transfers.
+  active_theme: client-x-child
+
+  # Envs listed here require typing the target hostname before any
+  # destructive step. Defaults to ["production"] if omitted.
+  protected_envs:
+    - production
+
+  # Per-site additions to the default rsync exclude list (data/exclude.default.txt).
+  # Use sparingly — most exclusions belong in the central list.
+  excludes_extra: []

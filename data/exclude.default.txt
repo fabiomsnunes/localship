@@ -1,0 +1,41 @@
+# LocalShip default rsync exclude list.
+# Lines beginning with '#' are comments. Blank lines are ignored.
+# Patterns follow rsync's --exclude semantics (relative to the WP root).
+#
+# Per-site additions can be set via `localship.excludes_extra` in wp-cli.yml.
+
+# Never sync — environment-specific or destination-managed:
+wp-config.php
+.htaccess
+
+# Caches and transient state:
+wp-content/cache/
+wp-content/upgrade/
+wp-content/uploads/cache/
+wp-content/wflogs/
+wp-content/w3tc-config/
+
+# Backup folders (created by various backup plugins and by LocalShip itself):
+wp-content/backup-*/
+wp-content/backups/
+wp-content/ai1wm-backups/
+wp-content/updraft/
+
+# Version control and local tooling:
+.git/
+.gitignore
+.gitattributes
+.svn/
+.hg/
+
+# Environment files and secrets:
+.env
+.env.*
+
+# Build artefacts and local toolchains:
+node_modules/
+vendor/
+*.log
+*.swp
+.DS_Store
+Thumbs.db
