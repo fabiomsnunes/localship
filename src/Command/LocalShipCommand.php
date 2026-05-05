@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace LocalShip\Command;
 
+use LocalShip\Flow\InitFlow;
+use LocalShip\Util\Prompt;
 use WP_CLI;
 
 /**
@@ -47,7 +49,39 @@ final class LocalShipCommand
      */
     public function init(array $args, array $assoc_args): void
     {
-        WP_CLI::error('Not implemented yet. Coming in step 5 of the build.');
+        $cwd    = getcwd();
+        if (false === $cwd) {
+            WP_CLI::error('Could not determine current working directory.');
+        }
+        $target = $cwd . '/wp-cli.yml';
+        $force  = array_key_exists('force', $assoc_args);
+
+        if (file_exists($target) && ! $force) {
+            WP_CLI::error(sprintf(
+                'wp-cli.yml already exists at %s. Pass --force to overwrite.',
+                $target
+            ));
+        }
+
+        $prompt = new Prompt(
+            Prompt::stdinReader(),
+            static function (string $line): void {
+                WP_CLI::log($line);
+            }
+        );
+        $flow   = new InitFlow($prompt, static function (string $line): void {
+            WP_CLI::log($line);
+        });
+
+        $config = $flow->gather($cwd);
+        $yaml   = $flow->render($config);
+
+        if (false === file_put_contents($target, $yaml)) {
+            WP_CLI::error(sprintf('Failed to write %s.', $target));
+        }
+
+        WP_CLI::success(sprintf('Wrote %s.', $target));
+        WP_CLI::log('Next: run `wp localship status` to verify connectivity.');
     }
 
     /**
