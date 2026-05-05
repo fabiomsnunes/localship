@@ -12,11 +12,14 @@ namespace LocalShip\Command;
 
 use LocalShip\Exception\ConfigException;
 use LocalShip\Exception\ProcessException;
+use LocalShip\Config\ConfigLoader;
+use LocalShip\Flow\CloneFlow;
 use LocalShip\Flow\InitFlow;
 use LocalShip\Flow\PullFlow;
 use LocalShip\Flow\PushFlow;
 use LocalShip\Flow\Scope;
 use LocalShip\Flow\StatusFlow;
+use LocalShip\Process\Runner;
 use LocalShip\Safety\Excludes;
 use LocalShip\Safety\HostnameConfirm;
 use LocalShip\Util\Prompt;
@@ -162,7 +165,62 @@ final class LocalShipCommand
      */
     public function clone(array $args, array $assoc_args): void
     {
-        WP_CLI::error('Not implemented yet. Coming in step 9 of the build.');
+        if ([] === $args) {
+            WP_CLI::error('Missing required <env> argument.');
+        }
+        $envName = $args[0];
+
+        $cwd = getcwd();
+        if (false === $cwd) {
+            WP_CLI::error('Could not determine current working directory.');
+        }
+
+        $hasConfig = is_file($cwd . '/wp-cli.yml');
+        $existing  = null;
+        if ($hasConfig) {
+            try {
+                $existing = (new ConfigLoader())->loadFromFile($cwd . '/wp-cli.yml');
+            } catch (ConfigException $e) {
+                WP_CLI::error($e->getMessage());
+            }
+            if (! $existing->hasEnv($envName)) {
+                WP_CLI::error(sprintf('Unknown env "%s".', $envName));
+            }
+        }
+
+        try {
+            $scope = Scope::fromAssocArgs(Scope::ALL_TOKENS, $assoc_args);
+        } catch (ConfigException $e) {
+            WP_CLI::error($e->getMessage());
+        }
+
+        $dryRun = array_key_exists('dry-run', $assoc_args);
+        $logger = static function (string $line): void {
+            WP_CLI::log($line);
+        };
+        $runner = new Runner($dryRun, $logger);
+        $prompt = new Prompt(Prompt::stdinReader(), $logger);
+
+        $initFlow  = new InitFlow($prompt, $logger);
+        $pullFlow  = new PullFlow($runner, new Excludes(Excludes::bundledDefault()), $logger);
+        $cloneFlow = new CloneFlow($initFlow, $pullFlow, $logger);
+
+        try {
+            $config = $cloneFlow->run($cwd, $envName, $scope, $existing);
+        } catch (ProcessException $e) {
+            WP_CLI::error($e->getMessage());
+        } catch (\InvalidArgumentException $e) {
+            WP_CLI::error($e->getMessage());
+        }
+
+        WP_CLI::success('Clone finished.');
+        WP_CLI::log('');
+        WP_CLI::log('Next steps:');
+        WP_CLI::log('  - `wp localship status` to verify connectivity to all envs.');
+        WP_CLI::log(sprintf('  - `wp localship pull %s` to refresh local data later.', $envName));
+        if ($config->hasEnv('staging')) {
+            WP_CLI::log('  - `wp localship push staging` once you have changes ready.');
+        }
     }
 
     /**
